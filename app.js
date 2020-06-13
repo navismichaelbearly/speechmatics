@@ -1,16 +1,13 @@
 'use strict';
-
-//  Google Cloud Speech Playground with node.js and socket.io
-//  Created by Vinzenz Aubry for sansho 24.01.17
-//  Feel free to improve!
-//	Contact: vinzenz@sansho.studio
-
 const express = require('express'); // const bodyParser = require('body-parser'); // const path = require('path');
 const environmentVars = require('dotenv').config();
+const WebSocket =  require('websocket').client;
 
-// Google Cloud
-const speech = require('@google-cloud/speech');
-const speechClient = new speech.SpeechClient(); // Creates a client
+const speechClient = new WebSocket('wss://10.22.7.76:9000/v2');
+
+speechClient.onopen = function(e) {
+  console.log('Speech Connection to server opened');
+}
 
 const app = express();
 const port = process.env.PORT || 1337;
@@ -25,7 +22,7 @@ app.set('view engine', 'ejs');
 // =========================== ROUTERS ================================ //
 
 app.get('/', function (req, res) {
-  res.render('index', {});
+  res.render('app', {});
 });
 
 app.use('/', function (req, res, next) {
@@ -38,23 +35,23 @@ io.on('connection', function (client) {
   console.log('Client Connected to server');
   let recognizeStream = null;
 
-  client.on('join', function () {
+  speechClient.on('AudioAdded', function () {
     client.emit('messages', 'Socket Connected to Server');
   });
 
-  client.on('messages', function (data) {
+  speechClient.on('messages', function (data) {
     client.emit('broad', data);
   });
 
-  client.on('startGoogleCloudStream', function (data) {
+  speechClient.onopen('StartRecognition', function (data) {
     startRecognitionStream(this, data);
   });
 
-  client.on('endGoogleCloudStream', function () {
+  speechClient.on('EndofTranscript', function () {
     stopRecognitionStream();
   });
 
-  client.on('binaryData', function (data) {
+  speechClient.on('binaryData', function (data) {
     // console.log(data); //log binary data
     if (recognizeStream !== null) {
       recognizeStream.write(data);
@@ -87,31 +84,7 @@ io.on('connection', function (client) {
   }
 });
 
-// =========================== GOOGLE CLOUD SETTINGS ================================ //
-
-// The encoding of the audio file, e.g. 'LINEAR16'
-// The sample rate of the audio file in hertz, e.g. 16000
-// The BCP-47 language code to use, e.g. 'en-US'
-const encoding = 'LINEAR16';
-const sampleRateHertz = 16000;
-const languageCode = 'en-US'; //en-US
-
-const request = {
-  config: {
-    encoding: encoding,
-    sampleRateHertz: sampleRateHertz,
-    languageCode: languageCode,
-    profanityFilter: false,
-    enableWordTimeOffsets: true,
-    // speechContexts: [{
-    //     phrases: ["hoful","shwazil"]
-    //    }] // add your own speech context for better recognition
-  },
-  interimResults: true, // If you want interim results, set this to true
-};
-
 // =========================== START SERVER ================================ //
-
 server.listen(port, '127.0.0.1', function () {
   //http listen, to make socket work
   // app.address = "127.0.0.1";

@@ -1,10 +1,5 @@
 'use strict'
 
-//  Google Cloud Speech Playground with node.js and socket.io
-//  Created by Vinzenz Aubry for sansho 24.01.17
-//  Feel free to improve!
-//	Contact: vinzenz@sansho.studio
-
 //connection to socket
 const socket = io.connect();
 
@@ -36,7 +31,7 @@ const constraints = {
 
 
 function initRecording() {
-	socket.emit('startGoogleCloudStream', ''); //init socket Google Speech Connection
+	socket.emit('StartRecognition', ''); //init socket Google Speech Connection
 	streamStreaming = true;
 	AudioContext = window.AudioContext || window.webkitAudioContext;
 	context = new AudioContext({
